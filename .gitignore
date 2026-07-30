@@ -1,0 +1,57 @@
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+  *.iml
+  .gradle/
+  /local.properties
+  .idea/
+  /build/
+  /app/build/
+  .DS_Store
+
+# Signing — never commit the keystore or its passwords
+keystore.properties
+*.jks
+*.keystore
+
+# Release build outputs
+app/release/**/*.aab
+app/release/**/*.apk
+app/release/**/output-metadata.json
+
+# JVM crash logs and Gradle/Kotlin scratch
+hs_err_pid*.log
+replay_pid*.log
+.kotlin/
+
+# Local scratch files not meant for the repo
+GeminiAnswer.txt
+screenshot.png
+seed.sh
+PIM_Log.txt
+Temp_AndroidAppLog.txt
+temp.txt
+Untitled.png
+
+# Sibling website clone (tracked separately)
+PIM-website/
+
+# Sibling iOS clone (tracked separately)
+PIM-ios/
+
+# Per-flavor build artifact folders
+app/fdroid/
+app/googlePlay/
