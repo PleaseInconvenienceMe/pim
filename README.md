@@ -26,7 +26,7 @@ scrolling back into a conscious choice.
 
 ## Flavors
 
-- `fdroid` — fully free, every feature, no billing code, shows a donate prompt
+- `openSource` — fully free, every feature, no billing code, shows a donate prompt
 - `googlePlay` — the Play Store build (7-day trial, one-time purchase)
 
 The About screen names which one you're running.
@@ -36,10 +36,10 @@ The About screen names which one you're running.
 Needs a recent Android Studio / Android SDK (compileSdk 36, minSdk 26).
 
 ```
-./gradlew assembleFdroidDebug
+./gradlew assembleOpenSourceDebug
 ```
 
-The APK lands in `app/build/outputs/apk/fdroid/debug/`.
+The APK lands in `app/build/outputs/apk/openSource/debug/`.
 
 ## Privacy
 

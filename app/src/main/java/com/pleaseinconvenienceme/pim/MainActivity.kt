@@ -1129,7 +1129,7 @@ fun AppListScreen() {
         }
     }
 
-    // Donate nudge dialog (fdroid: shown when adding the 4th+ app)
+    // Donate nudge dialog (open-source build: shown when adding the 4th+ app)
     if (showDonateNudge) {
         DonateNudgeDialog(
             onDismiss = { showDonateNudge = false }

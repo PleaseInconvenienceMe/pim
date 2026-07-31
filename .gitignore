@@ -53,5 +53,5 @@ PIM-website/
 PIM-ios/
 
 # Per-flavor build artifact folders
-app/fdroid/
+app/openSource/
 app/googlePlay/

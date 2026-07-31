@@ -8,8 +8,10 @@ import android.os.PowerManager
 import android.provider.Settings
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
@@ -288,6 +290,17 @@ fun PermissionsStep(onContinue: () -> Unit) {
         val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
         mutableStateOf(pm.isIgnoringBatteryOptimizations(context.packageName))
     }
+    // Set once the user has actually tried to grant usage access. Used to surface the
+    // sideload "restricted settings" recovery steps only after they've hit the wall.
+    var attemptedUsageAccess by remember { mutableStateOf(false) }
+    // Whether to show the recovery panel. Decided ONLY on resume (below), never on the
+    // Grant tap — otherwise the panel flashes for a frame as the settings screen opens.
+    var showUsageHelp by remember { mutableStateOf(false) }
+    // Open-build only: a one-time "extra step" heads-up shown the first time the user taps
+    // Grant, right before Android's scary sideload block. Frames the hurdle as a step, not a
+    // threat. Shown once (preframeShown), then Grant goes straight to settings thereafter.
+    var showPreframe by remember { mutableStateOf(false) }
+    var preframeShown by remember { mutableStateOf(false) }
 
     // Re-check permissions when the user comes back from settings
     DisposableEffect(lifecycleOwner) {
@@ -298,6 +311,9 @@ fun PermissionsStep(onContinue: () -> Unit) {
                     Settings.canDrawOverlays(context) else true
                 val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
                 hasBatteryUnrestricted = pm.isIgnoringBatteryOptimizations(context.packageName)
+                // Evaluate the recovery panel only here, on return from settings: show it if
+                // they tried and came back without the grant (open build only).
+                showUsageHelp = !BuildConfig.ENFORCE_LIMIT && attemptedUsageAccess && !hasUsageAccess
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -332,10 +348,58 @@ fun PermissionsStep(onContinue: () -> Unit) {
             description = "Lets PIM know when you open a restricted app",
             granted = hasUsageAccess,
             onGrant = {
-                val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
-                context.startActivity(intent)
+                attemptedUsageAccess = true
+                // First tap on the open build: prepare the user before Android's block dialog.
+                if (!BuildConfig.ENFORCE_LIMIT && !preframeShown) {
+                    showPreframe = true
+                } else {
+                    context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+                }
             }
         )
+
+        // One-time pre-frame: calm heads-up shown before Android's sideload block dialog.
+        if (showPreframe) {
+            AlertDialog(
+                onDismissRequest = { showPreframe = false },
+                title = { Text("Heads up") },
+                text = {
+                    Text(
+                        "Android may give an alarming message when you grant Usage Access.\n\n" +
+                            "This happens for any app from outside the Play Store. PIM has no accounts " +
+                            "or internet access. It's safe to continue.\n\n" +
+                            "If you see \"App was denied access\", exit it, come back here, and PIM will show you the fix."
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        preframeShown = true
+                        showPreframe = false
+                        context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+                    }) {
+                        Text("Got it")
+                    }
+                }
+            )
+        }
+
+        // Open-source builds are sideloaded, so Android 13+ "restricted settings" blocks
+        // usage access on the first attempt with a scary dialog. The override only appears
+        // AFTER being blocked, so we can't pre-empt it — show the recovery steps once the
+        // user has tried and come back still un-granted (showUsageHelp, set on resume).
+        if (showUsageHelp) {
+            Spacer(modifier = Modifier.height(16.dp))
+            RestrictedSettingsHelp(
+                onOpenAppSettings = {
+                    context.startActivity(
+                        Intent(
+                            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                            Uri.parse("package:${context.packageName}")
+                        )
+                    )
+                }
+            )
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -382,6 +446,46 @@ fun PermissionsStep(onContinue: () -> Unit) {
         }
 
         Spacer(modifier = Modifier.height(48.dp))
+    }
+}
+
+@Composable
+fun RestrictedSettingsHelp(onOpenAppSettings: () -> Unit) {
+    val dark = isSystemInDarkTheme()
+    Surface(
+        color = if (dark) Color(0xFF3A3323) else Color(0xFFFAF3DC),
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, Color(0xFFB8983D)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "One more step",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = if (dark) Color(0xFFE8D9A0) else Color(0xFF6A5619)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Android blocked usage access because PIM isn't from the Play Store. To allow it:\n" +
+                    "1. Tap \"Open PIM's settings\" below.\n" +
+                    "2. Tap ⋮ (top-right), then \"Allow restricted settings.\"\n" +
+                    "3. Come back and click Grant on App Usage Access.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (dark) Color(0xFFBFB183) else Color(0xFF857337)
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            OutlinedButton(
+                onClick = onOpenAppSettings,
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+                border = BorderStroke(1.dp, Color(0xFFB8983D)),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = if (dark) Color(0xFFE8D9A0) else Color(0xFF6A5619)
+                )
+            ) {
+                Text("Open PIM's settings")
+            }
+        }
     }
 }
 

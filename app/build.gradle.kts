@@ -23,8 +23,8 @@ android {
         applicationId = "com.pleaseinconvenienceme.pim"
         minSdk = 26
         targetSdk = 36
-        versionCode = 44
-        versionName = "1.8.3"
+        versionCode = 45
+        versionName = "1.8.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -69,12 +69,12 @@ android {
             buildConfigField("boolean", "SHOW_DONATE_PROMPT", "false")
             buildConfigField("String", "DISTRIBUTION", "\"Google Play\"")
         }
-        create("fdroid") {
+        create("openSource") {
             dimension = "distribution"
             buildConfigField("boolean", "ENFORCE_LIMIT", "false")
             buildConfigField("boolean", "SHOW_DONATE_PROMPT", "true")
-            // Deliberately generic: this build also reaches people through GitHub
-            // Releases, Obtainium and IzzyOnDroid, not only F-Droid.
+            // Named generically because this one build reaches people through every open
+            // channel — GitHub Releases, Obtainium, IzzyOnDroid, F-Droid — not just F-Droid.
             buildConfigField("String", "DISTRIBUTION", "\"Open source\"")
         }
     }
