@@ -1,0 +1,15 @@
+Pick the apps you want to use less. When you open one, PIM stops you first: do a small task — a bit of arithmetic, retype a string, tap a sequence of dots — and you earn a timed session. When the session runs out, you decide again whether you still need it. No shame, no lectures, just enough friction to turn autopilot scrolling back into a conscious choice.
+
+Features:
+
+* Three task types — math, typing, tapping — with difficulty levels, including a fully custom difficulty
+* Per-app session lengths and per-app setting overrides
+* Optional delay before the task appears, which can grow for repeated back-to-back sessions
+* Session countdown overlay while you use a restricted app
+* Optional global lock, so you can't quietly remove your own restrictions in a weak moment
+* Seven-day usage stats per restricted app
+* Dark mode
+
+PIM collects nothing. No analytics, no accounts, no network calls. Everything it knows — your restricted apps, session history, settings — stays on the device.
+
+This is the open source build: every feature, free, with no billing code.

@@ -1,0 +1,1 @@
+Changing a setting mid-session no longer restarts the task. Removing your last restricted app now clears the global lock too. The delay screen now says why the wait grew.
