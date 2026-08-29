@@ -59,5 +59,7 @@ back through this repo — please open an issue instead.
 
 ## License
 
-[GPL-3.0](LICENSE). The bundled fonts are under the SIL Open Font License:
+GPL-3.0-or-later: you may use this code under the terms of the
+[GNU General Public License version 3](LICENSE), or, at your option, any later
+version. The bundled fonts are under the SIL Open Font License:
 [Jost](OFL-Jost.txt) and [Playfair Display](OFL-PlayfairDisplay.txt).
