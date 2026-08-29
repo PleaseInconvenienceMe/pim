@@ -966,17 +966,6 @@ fun PimTopBar(appName: String, isContinuation: Boolean = false) {
     }
 }
 
-private fun ordinal(n: Int): String {
-    val suffix = when {
-        n % 100 in 11..13 -> "th"
-        n % 10 == 1 -> "st"
-        n % 10 == 2 -> "nd"
-        n % 10 == 3 -> "rd"
-        else -> "th"
-    }
-    return "$n$suffix"
-}
-
 @Composable
 fun DelayPhase(
     paddingValues: PaddingValues,
@@ -1001,9 +990,13 @@ fun DelayPhase(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         if (sessionCount >= 2) {
+            // Count the sessions BEFORE this one, and say what the count is doing to them --
+            // the old "(2nd session in 60 min)" labelled the session but never explained the
+            // longer wait. Matches the iOS wording.
+            val recentSessions = sessionCount - 1
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "(${ordinal(sessionCount)} session in 60 min)",
+                text = "$recentSessions recent ${if (recentSessions == 1) "session" else "sessions"} — delay added",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

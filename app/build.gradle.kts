@@ -23,8 +23,8 @@ android {
         applicationId = "com.pleaseinconvenienceme.pim"
         minSdk = 26
         targetSdk = 36
-        versionCode = 45
-        versionName = "1.8.4"
+        versionCode = 46
+        versionName = "1.8.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

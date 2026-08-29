@@ -12,6 +12,10 @@ import kotlinx.coroutines.launch
 
 class BillingHelperImpl : BillingHelper {
 
+    private companion object {
+        const val PRODUCT_ID = "pim_unlimited"
+    }
+
     private val _isPurchased = MutableStateFlow(false)
     override val isPurchased: StateFlow<Boolean> = _isPurchased
 
@@ -69,18 +73,24 @@ class BillingHelperImpl : BillingHelper {
         connect { queryExistingPurchases(appContext) }
     }
 
-    override fun launchBillingFlow(activity: Activity) {
-        if (!::billingClient.isInitialized || !billingClient.isReady) return
-
+    /**
+     * Params for looking up the single one-time product. Shared by the price query and the
+     * purchase flow so there is one place to touch when the Play Billing query API changes.
+     */
+    private fun productDetailsParams(): QueryProductDetailsParams {
         val productList = listOf(
             QueryProductDetailsParams.Product.newBuilder()
-                .setProductId("pim_unlimited")
+                .setProductId(PRODUCT_ID)
                 .setProductType(BillingClient.ProductType.INAPP)
                 .build()
         )
-        val params = QueryProductDetailsParams.newBuilder().setProductList(productList).build()
+        return QueryProductDetailsParams.newBuilder().setProductList(productList).build()
+    }
 
-        billingClient.queryProductDetailsAsync(params) { result, detailsResult ->
+    override fun launchBillingFlow(activity: Activity) {
+        if (!::billingClient.isInitialized || !billingClient.isReady) return
+
+        billingClient.queryProductDetailsAsync(productDetailsParams()) { result, detailsResult ->
             if (result.responseCode != BillingClient.BillingResponseCode.OK) return@queryProductDetailsAsync
             val productDetails = detailsResult.productDetailsList.firstOrNull() ?: return@queryProductDetailsAsync
 
@@ -100,14 +110,7 @@ class BillingHelperImpl : BillingHelper {
     }
 
     private fun queryPrice() {
-        val productList = listOf(
-            QueryProductDetailsParams.Product.newBuilder()
-                .setProductId("pim_unlimited")
-                .setProductType(BillingClient.ProductType.INAPP)
-                .build()
-        )
-        val params = QueryProductDetailsParams.newBuilder().setProductList(productList).build()
-        billingClient.queryProductDetailsAsync(params) { result, detailsResult ->
+        billingClient.queryProductDetailsAsync(productDetailsParams()) { result, detailsResult ->
             if (result.responseCode == BillingClient.BillingResponseCode.OK) {
                 val priceStr = detailsResult.productDetailsList.firstOrNull()
                     ?.oneTimePurchaseOfferDetails?.formattedPrice
@@ -128,7 +131,7 @@ class BillingHelperImpl : BillingHelper {
         billingClient.queryPurchasesAsync(params) { result, purchases ->
             if (result.responseCode != BillingClient.BillingResponseCode.OK) return@queryPurchasesAsync
             val activeEntitlement = purchases.any {
-                it.products.contains("pim_unlimited") &&
+                it.products.contains(PRODUCT_ID) &&
                     it.purchaseState == Purchase.PurchaseState.PURCHASED
             }
             if (activeEntitlement) {
@@ -150,7 +153,7 @@ class BillingHelperImpl : BillingHelper {
     }
 
     private fun handlePurchase(context: Context, purchase: Purchase) {
-        if (!purchase.products.contains("pim_unlimited")) return
+        if (!purchase.products.contains(PRODUCT_ID)) return
         if (purchase.purchaseState != Purchase.PurchaseState.PURCHASED) return
 
         savePurchased(context)

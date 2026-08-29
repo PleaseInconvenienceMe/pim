@@ -1021,9 +1021,16 @@ fun AppListScreen() {
                 durationPrefs.edit().putInt(pickerAppName, minutes).apply()
                 appDurations = appDurations + (pickerAppName to minutes)
 
-                // Clear any active session so the new duration takes effect immediately
+                // Leave a running session alone: it keeps the length it was granted with, and the
+                // new duration applies from the next session on. Clearing it here meant that
+                // stepping into PIM mid-session and confirming the picker sent the user back to
+                // a fresh task even though their session still had time on it.
+                // With nothing running, we still clear, so a just-expired session resets to a
+                // cold open rather than counting as a back-to-back continuation.
                 val sessionPrefs = context.getSharedPreferences(PrefsKeys.SESSIONS, Context.MODE_PRIVATE)
-                sessionPrefs.edit().remove(pickerAppName).apply()
+                if (sessionPrefs.getLong(pickerAppName, 0L) <= System.currentTimeMillis()) {
+                    sessionPrefs.edit().remove(pickerAppName).apply()
+                }
 
                 if (pickerIsNewRestriction) {
                     if (BuildConfig.SHOW_DONATE_PROMPT && selectedApps.size + 1 == 4) {
@@ -1311,6 +1318,11 @@ fun AppListScreen() {
                     OutlinedButton(
                         onClick = {
                             showRemoveOptions = false
+                            // Read the lock state BEFORE removing: removing the last app now
+                            // clears the global lock, and the tip below is meant for people who
+                            // never set one — not for someone whose lock we just tidied away.
+                            val prefs = context.getSharedPreferences(PrefsKeys.SETTINGS, Context.MODE_PRIVATE)
+                            val hasLock = prefs.contains(PrefsKeys.GLOBAL_LOCK_HASH)
                             removeAppPermanently(
                                 context, removeAppName, selectedApps,
                                 onUpdate = { newApps, newDurations, newTemp ->
@@ -1319,10 +1331,16 @@ fun AppListScreen() {
                                     tempUnrestrict = newTemp
                                 },
                                 appDurations = appDurations,
-                                tempUnrestrict = tempUnrestrict
+                                tempUnrestrict = tempUnrestrict,
+                                onGlobalLockCleared = {
+                                    // Keep the padlock UI in step with the pref. Without this the
+                                    // toggle would still read locked, and tapping it would open a
+                                    // password prompt that can never be satisfied — checkPassword
+                                    // fails closed once the hash is gone.
+                                    globalLockEnabled = false
+                                    customOverridesVersion++
+                                }
                             )
-                            val prefs = context.getSharedPreferences(PrefsKeys.SETTINGS, Context.MODE_PRIVATE)
-                            val hasLock = prefs.contains(PrefsKeys.GLOBAL_LOCK_HASH)
                             val nudgeCount = prefs.getInt(PrefsKeys.LOCK_NUDGE_COUNT, 0)
                             val tip = if (!hasLock && nudgeCount < 5) {
                                 prefs.edit().putInt(PrefsKeys.LOCK_NUDGE_COUNT, nudgeCount + 1).apply()
@@ -1892,7 +1910,8 @@ private fun removeAppPermanently(
     selectedApps: Set<String>,
     onUpdate: (newApps: Set<String>, newDurations: Map<String, Int>, newTemp: Map<String, Long>) -> Unit,
     appDurations: Map<String, Int>,
-    tempUnrestrict: Map<String, Long>
+    tempUnrestrict: Map<String, Long>,
+    onGlobalLockCleared: () -> Unit
 ) {
     val newSelectedApps = selectedApps - appName
 
@@ -1918,6 +1937,19 @@ private fun removeAppPermanently(
         context.startForegroundService(serviceIntent)
     } else {
         context.stopService(serviceIntent)
+        // Nothing is restricted any more, so the global lock has nothing left to guard. Leaving
+        // it on strands the user: the padlock still reads locked, the next restriction is locked
+        // from the moment it's added, and turning the lock off needs a password they may no
+        // longer have. Removing a locked app already required that password (see the isLocked()
+        // gate on the remove path), so clearing it here is not a way around the lock.
+        // The hash goes with the flag, so a forgotten password can't silently come back the next
+        // time the lock is switched on.
+        context.getSharedPreferences(PrefsKeys.SETTINGS, Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean(PrefsKeys.LOCK_ALL_RESTRICTED, false)
+            .remove(PrefsKeys.GLOBAL_LOCK_HASH)
+            .apply()
+        onGlobalLockCleared()
     }
 
     onUpdate(newSelectedApps, appDurations - appName, tempUnrestrict - appName)
